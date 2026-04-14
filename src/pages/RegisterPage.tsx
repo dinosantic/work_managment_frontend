@@ -3,16 +3,13 @@ import { UserPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiRequest, ApiError } from "@/lib/api";
 
 type RegisterPageProps = {
-  apiUrl: string;
   onGoToLogin: () => void;
 };
 
-export default function RegisterPage({
-  apiUrl,
-  onGoToLogin,
-}: RegisterPageProps) {
+export default function RegisterPage({ onGoToLogin }: RegisterPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -21,24 +18,17 @@ export default function RegisterPage({
     setMessage("");
 
     try {
-      const res = await fetch(`${apiUrl}/auth/register`, {
+      const data = await apiRequest<{ message?: string }>("/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Error");
-      }
 
       setMessage(data.message || "User registered");
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "An error occurred";
       setMessage(`❌ ${errorMessage}`);
     }
   }

@@ -3,15 +3,14 @@ import { LogIn } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiRequest, ApiError } from "@/lib/api";
 
 type LoginPageProps = {
-  apiUrl: string;
   onLoggedIn: (token: string) => void;
   onGoToRegister: () => void;
 };
 
 export default function LoginPage({
-  apiUrl,
   onLoggedIn,
   onGoToRegister,
 }: LoginPageProps) {
@@ -23,24 +22,17 @@ export default function LoginPage({
     setMessage("");
 
     try {
-      const res = await fetch(`${apiUrl}/auth/login`, {
+      const data = await apiRequest<{ token: string }>("/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
 
       onLoggedIn(data.token);
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "An error occurred";
       setMessage(`❌ ${errorMessage}`);
     }
   }

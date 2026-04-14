@@ -3,33 +3,34 @@ import Layout from "@/components/layout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  clearStoredToken,
+  getStoredToken,
+  setStoredToken,
+} from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
 import "./App.css";
-
-const API_URL = "http://localhost:3000";
 
 type Page = "login" | "register";
 
 export default function App() {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token"),
-  );
+  const [token, setToken] = useState<string | null>(getStoredToken());
   const [page, setPage] = useState<Page>("login");
 
   function handleLoggedIn(nextToken: string) {
-    localStorage.setItem("token", nextToken);
+    setStoredToken(nextToken);
     setToken(nextToken);
   }
 
   function handleLogout() {
-    localStorage.removeItem("token");
+    clearStoredToken();
     queryClient.clear();
     setToken(null);
     setPage("login");
   }
 
   if (token) {
-    return <Layout apiUrl={API_URL} token={token} onLogout={handleLogout} />;
+    return <Layout onLogout={handleLogout} />;
   }
 
   return (
@@ -44,16 +45,12 @@ export default function App() {
         <CardContent>
           {page === "login" && (
             <LoginPage
-              apiUrl={API_URL}
               onLoggedIn={handleLoggedIn}
               onGoToRegister={() => setPage("register")}
             />
           )}
           {page === "register" && (
-            <RegisterPage
-              apiUrl={API_URL}
-              onGoToLogin={() => setPage("login")}
-            />
+            <RegisterPage onGoToLogin={() => setPage("login")} />
           )}
         </CardContent>
       </Card>

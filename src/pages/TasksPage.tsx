@@ -8,11 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-interface TasksPageProps {
-  apiUrl: string;
-  token: string;
-}
-
 interface Task {
   id: number;
   title: string;
@@ -27,20 +22,19 @@ function statusVariant(status: string) {
   return "muted" as const;
 }
 
-export default function TasksPage({ apiUrl, token }: TasksPageProps) {
+export default function TasksPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const queryClient = useQueryClient();
 
   const tasksQuery = useQuery({
     queryKey: TASKS_QUERY_KEY,
-    queryFn: () => apiRequest<Task[]>(apiUrl, "/tasks", { token }),
+    queryFn: () => apiRequest<Task[]>("/tasks"),
   });
 
   const createTaskMutation = useMutation({
     mutationFn: (title: string) =>
-      apiRequest<Task>(apiUrl, "/tasks", {
+      apiRequest<Task>("/tasks", {
         method: "POST",
-        token,
         body: { title },
       }),
     onSuccess: (createdTask) => {
@@ -54,9 +48,8 @@ export default function TasksPage({ apiUrl, token }: TasksPageProps) {
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ taskId, status }: { taskId: number; status: string }) =>
-      apiRequest(apiUrl, `/tasks/${taskId}`, {
+      apiRequest(`/tasks/${taskId}`, {
         method: "PATCH",
-        token,
         body: { status },
       }),
     onSuccess: (_, variables) => {
@@ -72,9 +65,8 @@ export default function TasksPage({ apiUrl, token }: TasksPageProps) {
 
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: number) =>
-      apiRequest(apiUrl, `/tasks/${taskId}`, {
+      apiRequest(`/tasks/${taskId}`, {
         method: "DELETE",
-        token,
       }),
     onSuccess: (_, taskId) => {
       queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,7 +9,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ApiError, getCurrentUser } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { useCurrentUser } from "@/features/user/hooks";
 import HomePage from "@/pages/HomePage";
 import ProfilePage from "@/pages/ProfilePage";
 import TasksPage from "@/pages/TasksPage";
@@ -18,12 +18,8 @@ import TasksPage from "@/pages/TasksPage";
 export type DashboardSection = "overview" | "tasks" | "profile";
 
 type LayoutProps = {
-  apiUrl: string;
-  token: string;
   onLogout: () => void;
 };
-
-const CURRENT_USER_QUERY_KEY = ["current-user"];
 
 const sectionTitles: Record<DashboardSection, string> = {
   overview: "Overview",
@@ -31,19 +27,11 @@ const sectionTitles: Record<DashboardSection, string> = {
   profile: "Profile",
 };
 
-export default function Layout({
-  apiUrl,
-  token,
-  onLogout,
-}: Readonly<LayoutProps>) {
+export default function Layout({ onLogout }: Readonly<LayoutProps>) {
   const [activeSection, setActiveSection] =
     useState<DashboardSection>("overview");
 
-  const currentUserQuery = useQuery({
-    queryKey: CURRENT_USER_QUERY_KEY,
-    queryFn: () => getCurrentUser(apiUrl, token),
-    retry: false,
-  });
+  const { currentUserQuery } = useCurrentUser();
 
   useEffect(() => {
     if (
@@ -140,9 +128,7 @@ export default function Layout({
                 userError={null}
               />
             )}
-            {activeSection === "tasks" && (
-              <TasksPage apiUrl={apiUrl} token={token} />
-            )}
+            {activeSection === "tasks" && <TasksPage />}
             {activeSection === "profile" && (
               <ProfilePage user={currentUserQuery.data} />
             )}

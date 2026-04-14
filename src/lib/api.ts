@@ -1,65 +1,28 @@
+import api, {
+  ApiError,
+  clearStoredToken,
+  getStoredToken,
+  setStoredToken,
+} from "@/api/axios";
+import type { AxiosRequestConfig, Method } from "axios";
+
 type RequestOptions = {
-  method?: string;
+  method?: Method;
   body?: unknown;
-  token?: string;
+  config?: AxiosRequestConfig;
 };
 
-export type CurrentUser = {
-  id: number;
-  email: string;
-  role: string;
-  displayName: string;
-};
+export { ApiError, clearStoredToken, getStoredToken, setStoredToken };
 
-type ApiErrorPayload = {
-  message?: string;
-  details?: Array<{ field?: string; message?: string }>;
-};
+export async function apiRequest<T>(path: string, options: RequestOptions = {}) {
+  const { method = "GET", body, config } = options;
 
-export class ApiError extends Error {
-  status: number;
-  details?: ApiErrorPayload["details"];
-
-  constructor(message: string, status: number, details?: ApiErrorPayload["details"]) {
-    super(message);
-    this.status = status;
-    this.details = details;
-  }
-}
-
-export async function apiRequest<T>(
-  apiUrl: string,
-  path: string,
-  options: RequestOptions = {},
-) {
-  const { method = "GET", body, token } = options;
-
-  const res = await fetch(`${apiUrl}${path}`, {
+  const response = await api.request<T>({
+    url: path,
     method,
-    headers: {
-      ...(body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
+    data: body,
+    ...config,
   });
 
-  const data = (await res.json().catch(() => null)) as T | ApiErrorPayload | null;
-
-  if (!res.ok) {
-    throw new ApiError(
-      (data as ApiErrorPayload | null)?.message || "Request failed",
-      res.status,
-      (data as ApiErrorPayload | null)?.details,
-    );
-  }
-
-  return data as T;
-}
-
-export async function getCurrentUser(apiUrl: string, token: string) {
-  const data = await apiRequest<{ user: CurrentUser }>(apiUrl, "/users/me", {
-    token,
-  });
-
-  return data.user;
+  return response.data;
 }

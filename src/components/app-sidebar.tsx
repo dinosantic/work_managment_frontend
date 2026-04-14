@@ -18,8 +18,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar-context";
-import type { CurrentUser } from "@/lib/api";
 import type { DashboardSection } from "@/components/layout";
+import type { CurrentUser } from "@/features/user/types";
 
 const navItems: Array<{
   id: DashboardSection;
