@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ProfilePageProps } from "@/features/user/types";
+import type { CurrentUser } from "@/features/user/types";
 import { useCurrentUser } from "@/features/user/hooks";
 import { Check } from "lucide-react";
 import { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 
 function ProfileRow({
   label,
@@ -55,7 +56,12 @@ function ProfileRow({
   );
 }
 
-export default function ProfilePage({ user }: Readonly<ProfilePageProps>) {
+type LayoutOutletContext = {
+  currentUser: CurrentUser;
+};
+
+export default function ProfilePage() {
+  const { currentUser: user } = useOutletContext<LayoutOutletContext>();
   const [isEditing, setIsEditing] = useState(false);
   const [editedDisplayName, setEditedDisplayName] = useState(user.displayName);
 

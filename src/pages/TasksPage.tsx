@@ -1,22 +1,16 @@
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ListTodo, Plus, Trash2 } from "lucide-react";
-import { apiRequest, ApiError } from "@/lib/api";
+import { type FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, CheckCircle2, ListTodo, Plus, Trash2 } from "lucide-react";
+import { ApiError } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useTasks } from "@/features/tasks/hooks";
+import type { TaskStatus } from "@/features/tasks/types";
 
-interface Task {
-  id: number;
-  title: string;
-  status: string;
-}
-
-const TASKS_QUERY_KEY = ["tasks"];
-
-function statusVariant(status: string) {
+function statusVariant(status: TaskStatus) {
   if (status === "DONE") return "success" as const;
   if (status === "IN_PROGRESS") return "warning" as const;
   return "muted" as const;
@@ -24,65 +18,22 @@ function statusVariant(status: string) {
 
 export default function TasksPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const queryClient = useQueryClient();
+  const {
+    tasksQuery,
+    createTaskMutation,
+    updateTaskMutation,
+    deleteTaskMutation,
+  } = useTasks();
 
-  const tasksQuery = useQuery({
-    queryKey: TASKS_QUERY_KEY,
-    queryFn: () => apiRequest<Task[]>("/tasks"),
-  });
-
-  const createTaskMutation = useMutation({
-    mutationFn: (title: string) =>
-      apiRequest<Task>("/tasks", {
-        method: "POST",
-        body: { title },
-      }),
-    onSuccess: (createdTask) => {
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) => [
-        ...current,
-        createdTask,
-      ]);
-      setNewTaskTitle("");
-    },
-  });
-
-  const updateTaskMutation = useMutation({
-    mutationFn: ({ taskId, status }: { taskId: number; status: string }) =>
-      apiRequest(`/tasks/${taskId}`, {
-        method: "PATCH",
-        body: { status },
-      }),
-    onSuccess: (_, variables) => {
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
-        current.map((task) =>
-          task.id === variables.taskId
-            ? { ...task, status: variables.status }
-            : task,
-        ),
-      );
-    },
-  });
-
-  const deleteTaskMutation = useMutation({
-    mutationFn: (taskId: number) =>
-      apiRequest(`/tasks/${taskId}`, {
-        method: "DELETE",
-      }),
-    onSuccess: (_, taskId) => {
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
-        current.filter((task) => task.id !== taskId),
-      );
-    },
-  });
-
-  async function handleAddTask(e: React.FormEvent) {
+  async function handleAddTask(e: FormEvent) {
     e.preventDefault();
     if (!newTaskTitle) return;
 
     await createTaskMutation.mutateAsync(newTaskTitle);
+    setNewTaskTitle("");
   }
 
-  async function handleUpdateTaskStatus(taskId: number, status: string) {
+  async function handleUpdateTaskStatus(taskId: number, status: TaskStatus) {
     await updateTaskMutation.mutateAsync({ taskId, status });
   }
 
@@ -98,13 +49,8 @@ export default function TasksPage() {
             <ListTodo className="size-5 text-amber-500" />
             Tasks
           </CardTitle>
-          <p className="text-sm text-slate-500">
-            Managed with TanStack Query mutations and cache updates.
-          </p>
         </div>
-        <Badge variant="outline">
-          {tasksQuery.data?.length ?? 0} items
-        </Badge>
+        <Badge variant="outline">{tasksQuery.data?.length ?? 0} items</Badge>
       </CardHeader>
       <CardContent className="space-y-4">
         {tasksQuery.isLoading && (
@@ -149,15 +95,25 @@ export default function TasksPage() {
                   ) : (
                     <ListTodo className="size-4 text-slate-500" />
                   )}
-                  <span className="font-medium text-slate-900">{task.title}</span>
+                  <span className="font-medium text-slate-900">
+                    {task.title}
+                  </span>
                 </div>
-                <Badge variant={statusVariant(task.status)}>{task.status}</Badge>
+                <Badge variant={statusVariant(task.status)}>
+                  {task.status}
+                </Badge>
               </div>
               <div className="flex items-center gap-2">
+                <Button asChild type="button" variant="outline">
+                  <Link to={`/tasks/${task.id}`}>
+                    Details
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
                 <select
                   value={task.status}
                   onChange={(e) =>
-                    handleUpdateTaskStatus(task.id, e.target.value)
+                    handleUpdateTaskStatus(task.id, e.target.value as TaskStatus)
                   }
                   className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900"
                 >
@@ -177,7 +133,10 @@ export default function TasksPage() {
             </li>
           ))}
         </ul>
-        <form onSubmit={handleAddTask} className="flex flex-col gap-2 sm:flex-row">
+        <form
+          onSubmit={handleAddTask}
+          className="flex flex-col gap-2 sm:flex-row"
+        >
           <Input
             className="flex-1"
             placeholder="New task title"

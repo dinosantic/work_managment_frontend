@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronRight,
   LayoutDashboard,
@@ -18,29 +19,27 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar-context";
-import type { DashboardSection } from "@/components/layout";
 import type { CurrentUser } from "@/features/user/types";
 
 const navItems: Array<{
-  id: DashboardSection;
+  href: string;
   label: string;
   icon: typeof LayoutDashboard;
 }> = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "tasks", label: "Tasks", icon: SquareTerminal },
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/tasks", label: "Tasks", icon: SquareTerminal },
 ];
 
 function UserMenu({
   user,
   onLogout,
-  onOpenProfile,
 }: Readonly<{
   user: CurrentUser;
   onLogout: () => void;
-  onOpenProfile: () => void;
 }>) {
   const { open } = useSidebar();
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className={open ? "" : "relative"}>
@@ -80,7 +79,7 @@ function UserMenu({
             type="button"
             onClick={() => {
               setMenuOpen(false);
-              onOpenProfile();
+              navigate("/profile");
             }}
             className="flex w-30 items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
           >
@@ -102,19 +101,16 @@ function UserMenu({
 }
 
 type AppSidebarProps = {
-  activeSection: DashboardSection;
   currentUser: CurrentUser;
   onLogout: () => void;
-  onSectionChange: (section: DashboardSection) => void;
 };
 
 export function AppSidebar({
-  activeSection,
   currentUser,
   onLogout,
-  onSectionChange,
 }: Readonly<AppSidebarProps>) {
   const { open } = useSidebar();
+  const location = useLocation();
 
   return (
     <Sidebar>
@@ -143,15 +139,18 @@ export function AppSidebar({
           <SidebarMenu>
             {navItems.map((item) => {
               const Icon = item.icon;
+              const isActive =
+                item.href === "/"
+                  ? location.pathname === "/"
+                  : location.pathname.startsWith(item.href);
 
               return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={activeSection === item.id}
-                    onClick={() => onSectionChange(item.id)}
-                  >
-                    <Icon className="size-4 shrink-0" />
-                    {open && <span>{item.label}</span>}
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive}>
+                    <NavLink to={item.href} end={item.href === "/"}>
+                      <Icon className="size-4 shrink-0" />
+                      {open && <span>{item.label}</span>}
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -162,11 +161,7 @@ export function AppSidebar({
 
       <SidebarFooter>
         <div className="space-y-3">
-          <UserMenu
-            user={currentUser}
-            onLogout={onLogout}
-            onOpenProfile={() => onSectionChange("profile")}
-          />
+          <UserMenu user={currentUser} onLogout={onLogout} />
         </div>
       </SidebarFooter>
     </Sidebar>

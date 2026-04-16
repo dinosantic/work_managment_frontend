@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { LoaderCircle } from "lucide-react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -9,42 +10,43 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ApiError } from "@/lib/api";
+import { queryClient } from "@/lib/query-client";
+import { ApiError, clearStoredToken } from "@/lib/api";
 import { useCurrentUser } from "@/features/user/hooks";
-import HomePage from "@/pages/HomePage";
-import ProfilePage from "@/pages/ProfilePage";
-import TasksPage from "@/pages/TasksPage";
 
-export type DashboardSection = "overview" | "tasks" | "profile";
+const sectionTitles = [
+  { match: /^\/tasks\/[^/]+$/, title: "Task Details" },
+  { match: /^\/tasks$/, title: "Tasks" },
+  { match: /^\/profile$/, title: "Profile" },
+  { match: /^\/$/, title: "Overview" },
+];
 
-type LayoutProps = {
-  onLogout: () => void;
-};
-
-const sectionTitles: Record<DashboardSection, string> = {
-  overview: "Overview",
-  tasks: "Tasks",
-  profile: "Profile",
-};
-
-export default function Layout({ onLogout }: Readonly<LayoutProps>) {
-  const [activeSection, setActiveSection] =
-    useState<DashboardSection>("overview");
+export default function Layout() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const { currentUserQuery } = useCurrentUser();
+
+  const handleLogout = useCallback(() => {
+    clearStoredToken();
+    queryClient.clear();
+    navigate("/login", { replace: true });
+  }, [navigate]);
 
   useEffect(() => {
     if (
       currentUserQuery.error instanceof ApiError &&
       currentUserQuery.error.status === 401
     ) {
-      onLogout();
+      handleLogout();
     }
-  }, [currentUserQuery.error, onLogout]);
+  }, [currentUserQuery.error, handleLogout]);
 
   const sectionTitle = useMemo(
-    () => sectionTitles[activeSection],
-    [activeSection],
+    () =>
+      sectionTitles.find(({ match }) => match.test(location.pathname))?.title ??
+      "Dashboard",
+    [location.pathname],
   );
 
   if (
@@ -56,7 +58,7 @@ export default function Layout({ onLogout }: Readonly<LayoutProps>) {
 
   if (currentUserQuery.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,_#fff7ed_0%,_#f8fafc_20%,_#e2e8f0_100%)] px-4">
+      <div className="flex min-h-screen items-center justify-center px-4">
         <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm">
           <LoaderCircle className="size-4 animate-spin" />
           Loading dashboard...
@@ -67,7 +69,7 @@ export default function Layout({ onLogout }: Readonly<LayoutProps>) {
 
   if (!currentUserQuery.data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,_#fff7ed_0%,_#f8fafc_20%,_#e2e8f0_100%)] px-4">
+      <div className="flex min-h-screen items-center justify-center px-4">
         <Alert className="max-w-md border-red-200 bg-white text-red-900 shadow-sm">
           <AlertTitle>Could not start dashboard</AlertTitle>
           <AlertDescription>
@@ -83,7 +85,7 @@ export default function Layout({ onLogout }: Readonly<LayoutProps>) {
             >
               Retry
             </Button>
-            <Button type="button" variant="destructive" onClick={onLogout}>
+            <Button type="button" variant="destructive" onClick={handleLogout}>
               Logout
             </Button>
           </div>
@@ -94,12 +96,10 @@ export default function Layout({ onLogout }: Readonly<LayoutProps>) {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-[linear-gradient(180deg,_#fff7ed_0%,_#f8fafc_20%,_#e2e8f0_100%)]">
+      <div className="flex min-h-screen w-full">
         <AppSidebar
-          activeSection={activeSection}
           currentUser={currentUserQuery.data}
-          onLogout={onLogout}
-          onSectionChange={setActiveSection}
+          onLogout={handleLogout}
         />
 
         <SidebarInset>
@@ -121,17 +121,7 @@ export default function Layout({ onLogout }: Readonly<LayoutProps>) {
           </header>
 
           <main className="flex-1 p-4">
-            {activeSection === "overview" && (
-              <HomePage
-                currentUser={currentUserQuery.data}
-                isLoadingUser={false}
-                userError={null}
-              />
-            )}
-            {activeSection === "tasks" && <TasksPage />}
-            {activeSection === "profile" && (
-              <ProfilePage user={currentUserQuery.data} />
-            )}
+            <Outlet context={{ currentUser: currentUserQuery.data }} />
           </main>
         </SidebarInset>
       </div>

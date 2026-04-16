@@ -1,20 +1,15 @@
+import { useOutletContext } from "react-router-dom";
 import { Fingerprint, ShieldCheck, Sparkles } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CurrentUser } from "@/features/user/types";
 
-type HomePageProps = {
+type LayoutOutletContext = {
   currentUser: CurrentUser | null;
-  isLoadingUser: boolean;
-  userError: string | null;
 };
 
-export default function HomePage({
-  currentUser,
-  isLoadingUser,
-  userError,
-}: Readonly<HomePageProps>) {
+export default function HomePage() {
+  const { currentUser } = useOutletContext<LayoutOutletContext>();
   const quickFacts = currentUser
     ? [
         { label: "Display name", value: currentUser.displayName },
@@ -26,7 +21,7 @@ export default function HomePage({
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
-      <Card className="border-slate-200 bg-[linear-gradient(135deg,_#0f172a,_#1e293b_60%,_#334155)] text-white">
+      <Card className="border-slate-200 bg-slate-700 text-white">
         <CardHeader className="space-y-4">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-amber-100">
             <Sparkles className="size-3.5" />
@@ -59,17 +54,6 @@ export default function HomePage({
           <CardTitle className="text-lg text-slate-900">Current user</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isLoadingUser && (
-            <p className="text-sm text-slate-500">Loading account details...</p>
-          )}
-
-          {userError && (
-            <Alert className="border-red-200 bg-red-50 text-red-900">
-              <AlertTitle>Could not load user</AlertTitle>
-              <AlertDescription>{userError}</AlertDescription>
-            </Alert>
-          )}
-
           {quickFacts.map((fact) => (
             <div
               key={fact.label}
