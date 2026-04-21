@@ -3,9 +3,9 @@ import {
   deleteTask,
   getTask,
   getTasks,
-  updateTaskStatus,
+  updateTask,
 } from "@/features/tasks/api";
-import type { Task, TaskStatus } from "@/features/tasks/types";
+import type { Task, UpdateTaskValues } from "@/features/tasks/types";
 import { toast } from "@/components/ui/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -34,13 +34,60 @@ export function useTaskQuery(taskId: number) {
   });
 }
 
+export function useUpdateTaskMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      payload,
+    }: {
+      taskId: number;
+      payload: UpdateTaskValues;
+    }) => {
+      const response = await updateTask(taskId, payload);
+
+      return response;
+    },
+    onSuccess: (task) => {
+      toast.success("Success", {
+        description: "Task updated successfully",
+      });
+      queryClient.setQueryData<Task>([...TASKS_QUERY_KEY, task.id], task);
+      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
+        current.map((currentTask) =>
+          currentTask.id === task.id ? task : currentTask,
+        ),
+      );
+    },
+    onError: (err: unknown) => {
+      console.error("Task update error", err);
+      if (err instanceof Error) {
+        toast.error("Error", {
+          description: err.message,
+        });
+      } else {
+        toast.error("Error", {
+          description: "An unknown error occurred. Please try again.",
+        });
+      }
+    },
+  });
+}
+
 export function useTasks() {
   const queryClient = useQueryClient();
   const tasksQuery = useTasksQuery();
 
   const createTaskMutation = useMutation({
-    mutationFn: async (title: string) => {
-      const task = await createTask(title);
+    mutationFn: async ({
+      title,
+      description,
+    }: {
+      title: string;
+      description: string;
+    }) => {
+      const task = await createTask({ title, description });
 
       return task;
     },
@@ -55,44 +102,6 @@ export function useTasks() {
     },
     onError: (err: unknown) => {
       console.error("Task create error", err);
-      if (err instanceof Error) {
-        toast.error("Error", {
-          description: err.message,
-        });
-      } else {
-        toast.error("Error", {
-          description: "An unknown error occurred. Please try again.",
-        });
-      }
-    },
-  });
-
-  const updateTaskMutation = useMutation({
-    mutationFn: async ({
-      taskId,
-      status,
-    }: {
-      taskId: number;
-      status: TaskStatus;
-    }) => {
-      const response = await updateTaskStatus(taskId, status);
-
-      return response;
-    },
-    onSuccess: (_, variables) => {
-      toast.success("Success", {
-        description: "Task status updated successfully",
-      });
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
-        current.map((task) =>
-          task.id === variables.taskId
-            ? { ...task, status: variables.status }
-            : task,
-        ),
-      );
-    },
-    onError: (err: unknown) => {
-      console.error("Task update error", err);
       if (err instanceof Error) {
         toast.error("Error", {
           description: err.message,
@@ -136,7 +145,6 @@ export function useTasks() {
   return {
     tasksQuery,
     createTaskMutation,
-    updateTaskMutation,
     deleteTaskMutation,
   };
 }

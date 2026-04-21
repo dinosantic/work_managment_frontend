@@ -1,5 +1,5 @@
 import api from "@/api/axios";
-import type { Task, TaskStatus } from "@/features/tasks/types";
+import type { Task, UpdateTaskValues } from "@/features/tasks/types";
 
 export async function getTasks() {
   const response = await api.get<Task[]>("/tasks");
@@ -13,17 +13,24 @@ export async function getTask(taskId: number) {
   return response.data;
 }
 
-export async function createTask(title: string) {
+export async function createTask({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   const response = await api.post<Task>("/tasks", {
     title,
+    description,
   });
 
   return response.data;
 }
 
-export async function updateTaskStatus(taskId: number, status: TaskStatus) {
-  const response = await api.patch<{ message: string }>(`/tasks/${taskId}`, {
-    status,
+export async function updateTask(taskId: number, payload: UpdateTaskValues) {
+  const response = await api.patch<Task>(`/tasks/${taskId}`, {
+    ...payload,
   });
 
   return response.data;

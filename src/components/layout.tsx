@@ -3,7 +3,6 @@ import { LoaderCircle } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   SidebarInset,
@@ -13,13 +12,7 @@ import {
 import { queryClient } from "@/lib/query-client";
 import { ApiError, clearStoredToken } from "@/lib/api";
 import { useCurrentUser } from "@/features/user/hooks";
-
-const sectionTitles = [
-  { match: /^\/tasks\/[^/]+$/, title: "Task Details" },
-  { match: /^\/tasks$/, title: "Tasks" },
-  { match: /^\/profile$/, title: "Profile" },
-  { match: /^\/$/, title: "Overview" },
-];
+import { sectionTitles } from "@/lib/utils";
 
 export default function Layout() {
   const location = useLocation();
@@ -116,7 +109,6 @@ export default function Layout() {
                   </h1>
                 </div>
               </div>
-              <Badge variant="outline">{currentUserQuery.data.role}</Badge>
             </div>
           </header>
 

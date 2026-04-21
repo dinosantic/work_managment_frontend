@@ -47,15 +47,13 @@ function ToastCard(props: Readonly<ToastCardProps>) {
 
   return (
     <div
-      className={`flex min-w-[350px] items-center gap-3 relative rounded-md p-4 shadow-lg ring-1 ring-black/5 border-1 ${v.border} ${v.bg}`}
+      className={`flex min-w-[350px] items-center gap-3 relative rounded-md p-4 shadow-lg ring-1 ring-black/5 border-1 ${v.border} bg-slate-700`}
     >
       {icon === null ? null : (icon ?? v.icon)}
       <div className="flex-1">
         <p className={`text-sm font-medium ${v.text}`}>{title}</p>
         {description && (
-          <p className={`mt-1 text-sm text-text-primary-default`}>
-            {description}
-          </p>
+          <p className={`mt-1 text-sm text-white`}>{description}</p>
         )}
       </div>
       {action && (
