@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,7 +26,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTasks } from "@/features/tasks/hooks";
-import { getTaskStatusMeta } from "@/lib/utils";
+import {
+  getTaskDueDateMeta,
+  getTaskPriorityMeta,
+  getTaskStatusMeta,
+} from "@/lib/utils";
 import type { CreateTaskValues } from "@/features/tasks/types";
 import { createTaskSchema } from "@/features/tasks/schemas";
 
@@ -30,6 +42,9 @@ export default function TasksPage() {
     defaultValues: {
       title: "",
       description: "",
+      priority: "MEDIUM",
+      dueDate: "",
+      assigneeUserId: null,
     },
   });
 
@@ -111,6 +126,51 @@ export default function TasksPage() {
                     </p>
                   )}
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">
+                      Priority
+                    </label>
+                    <Select
+                      value={form.watch("priority")}
+                      onValueChange={(value) =>
+                        form.setValue("priority", value as CreateTaskValues["priority"], {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectGroup>
+                          <SelectItem value="LOW">Low</SelectItem>
+                          <SelectItem value="MEDIUM">Medium</SelectItem>
+                          <SelectItem value="HIGH">High</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="task-due-date"
+                      className="text-sm font-medium text-slate-700"
+                    >
+                      Due date
+                    </label>
+                    <Input
+                      id="task-due-date"
+                      type="date"
+                      {...form.register("dueDate")}
+                    />
+                    {form.formState.errors.dueDate && (
+                      <p className="text-sm text-red-600">
+                        {form.formState.errors.dueDate.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <DialogFooter>
                   <Button
                     type="button"
@@ -139,6 +199,8 @@ export default function TasksPage() {
         <ul className="space-y-3">
           {tasksQuery.data?.map((task) => {
             const statusMeta = getTaskStatusMeta(task.status);
+            const priorityMeta = getTaskPriorityMeta(task.priority);
+            const dueDateMeta = getTaskDueDateMeta(task.dueDate);
             return (
               <li
                 key={task.id}
@@ -155,14 +217,18 @@ export default function TasksPage() {
                       {task.title}
                     </span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="mr-2 text-sm">Status:</span>
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
                     <Badge
                       variant={statusMeta.variant}
-                      className="border-slate-400"
                     >
                       {statusMeta.label}
                     </Badge>
+                    <Badge variant={priorityMeta.variant}>
+                      {priorityMeta.label} priority
+                    </Badge>
+                    <span className={dueDateMeta.className}>
+                      {dueDateMeta.label}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-center">

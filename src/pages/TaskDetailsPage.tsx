@@ -21,7 +21,7 @@ import { useTaskQuery, useUpdateTaskMutation } from "@/features/tasks/hooks";
 import { ApiError } from "@/lib/api";
 import { updateTaskSchema } from "@/features/tasks/schemas";
 import type { TaskStatus, UpdateTaskValues } from "@/features/tasks/types";
-import { getTaskStatusMeta } from "@/lib/utils";
+import { getTaskPriorityMeta, getTaskStatusMeta } from "@/lib/utils";
 
 export default function TaskDetailsPage() {
   const { taskId } = useParams();
@@ -36,6 +36,9 @@ export default function TaskDetailsPage() {
       title: "",
       description: "",
       status: "OPEN",
+      priority: "MEDIUM",
+      dueDate: "",
+      assigneeUserId: null,
     },
   });
   const taskData = taskQuery.data;
@@ -50,6 +53,9 @@ export default function TaskDetailsPage() {
       title: taskData.title,
       description: taskData.description,
       status: taskData.status,
+      priority: taskData.priority,
+      dueDate: taskData.dueDate ?? "",
+      assigneeUserId: taskData.assigneeUserId,
     });
   }, [form, taskData]);
 
@@ -94,12 +100,16 @@ export default function TaskDetailsPage() {
   }
 
   const task = taskQuery.data;
+  const priorityMeta = getTaskPriorityMeta(task.priority);
 
   const handleEdit = () => {
     form.reset({
       title: task.title,
       description: task.description,
       status: task.status,
+      priority: task.priority,
+      dueDate: task.dueDate ?? "",
+      assigneeUserId: task.assigneeUserId,
     });
     setIsEditing(true);
   };
@@ -109,6 +119,9 @@ export default function TaskDetailsPage() {
       title: task.title,
       description: task.description,
       status: task.status,
+      priority: task.priority,
+      dueDate: task.dueDate ?? "",
+      assigneeUserId: task.assigneeUserId,
     });
     setIsEditing(false);
   };
@@ -118,12 +131,18 @@ export default function TaskDetailsPage() {
       title: values.title.trim(),
       description: values.description.trim(),
       status: values.status,
+      priority: values.priority,
+      dueDate: values.dueDate,
+      assigneeUserId: values.assigneeUserId,
     };
 
     if (
       trimmedValues.title === task.title &&
       trimmedValues.description === task.description &&
-      trimmedValues.status === task.status
+      trimmedValues.status === task.status &&
+      trimmedValues.priority === task.priority &&
+      trimmedValues.dueDate === (task.dueDate ?? "") &&
+      trimmedValues.assigneeUserId === task.assigneeUserId
     ) {
       setIsEditing(false);
       form.reset(trimmedValues);
@@ -146,7 +165,10 @@ export default function TaskDetailsPage() {
         if (
           detail.field === "title" ||
           detail.field === "description" ||
-          detail.field === "status"
+          detail.field === "status" ||
+          detail.field === "priority" ||
+          detail.field === "dueDate" ||
+          detail.field === "assigneeUserId"
         ) {
           form.setError(detail.field, {
             type: "server",
@@ -238,6 +260,69 @@ export default function TaskDetailsPage() {
               </Select>
               {errors.status && (
                 <p className="text-sm text-red-600">{errors.status.message}</p>
+              )}
+            </div>
+          }
+        />
+        <EditableDetailRow
+          label="Priority"
+          value={priorityMeta.label}
+          isEditable={isEditing}
+          editor={
+            <div className="space-y-2">
+              <Select
+                onValueChange={(value) =>
+                  form.setValue("priority", value as UpdateTaskValues["priority"], {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                value={form.watch("priority")}
+                disabled={updateTaskMutation.isPending}
+              >
+                <SelectTrigger
+                  className={`h-10 w-full rounded-md border bg-white px-3 text-sm text-slate-900 shadow-xs focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    errors.priority
+                      ? "border-red-500 focus-visible:ring-red-400"
+                      : "border-slate-300 focus-visible:ring-amber-400"
+                  }`}
+                  aria-invalid={errors.priority ? "true" : "false"}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectGroup>
+                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HIGH">High</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {errors.priority && (
+                <p className="text-sm text-red-600">{errors.priority.message}</p>
+              )}
+            </div>
+          }
+        />
+        <EditableDetailRow
+          label="Due date"
+          value={task.dueDate ?? "Not set"}
+          isEditable={isEditing}
+          editor={
+            <div className="space-y-2">
+              <Input
+                type="date"
+                disabled={updateTaskMutation.isPending}
+                aria-invalid={errors.dueDate ? "true" : "false"}
+                className={
+                  errors.dueDate
+                    ? "border-red-500 focus-visible:ring-red-400"
+                    : undefined
+                }
+                {...form.register("dueDate")}
+              />
+              {errors.dueDate && (
+                <p className="text-sm text-red-600">{errors.dueDate.message}</p>
               )}
             </div>
           }

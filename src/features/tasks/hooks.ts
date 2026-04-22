@@ -5,7 +5,11 @@ import {
   getTasks,
   updateTask,
 } from "@/features/tasks/api";
-import type { Task, UpdateTaskValues } from "@/features/tasks/types";
+import type {
+  CreateTaskValues,
+  Task,
+  UpdateTaskValues,
+} from "@/features/tasks/types";
 import { toast } from "@/components/ui/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -80,14 +84,8 @@ export function useTasks() {
   const tasksQuery = useTasksQuery();
 
   const createTaskMutation = useMutation({
-    mutationFn: async ({
-      title,
-      description,
-    }: {
-      title: string;
-      description: string;
-    }) => {
-      const task = await createTask({ title, description });
+    mutationFn: async (payload: CreateTaskValues) => {
+      const task = await createTask(payload);
 
       return task;
     },

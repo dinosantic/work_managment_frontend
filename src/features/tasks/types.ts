@@ -2,13 +2,17 @@ import { z } from "zod";
 import type { createTaskSchema, updateTaskSchema } from "./schemas";
 
 export type TaskStatus = "OPEN" | "IN_PROGRESS" | "DONE";
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH";
 
 export type Task = {
   id: number;
   title: string;
   description: string;
   status: TaskStatus;
-  user_id?: number;
+  priority: TaskPriority;
+  dueDate: string | null;
+  createdById: number;
+  assigneeUserId: number | null;
 };
 
 export type CreateTaskValues = z.infer<typeof createTaskSchema>;
