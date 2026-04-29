@@ -1,4 +1,8 @@
-import { editCurrentUser, getCurrentUser } from "@/features/user/api";
+import {
+  editCurrentUser,
+  getCurrentUser,
+  getUsersDirectory,
+} from "@/features/user/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/toast";
 
@@ -40,4 +44,15 @@ export function useCurrentUser() {
   });
 
   return { currentUserQuery, editCurrentUserMutation };
+}
+
+export function useUsersDirectoryQuery() {
+  return useQuery({
+    queryKey: ["users-directory"],
+    queryFn: async () => {
+      const response = await getUsersDirectory();
+
+      return response;
+    },
+  });
 }

@@ -13,6 +13,7 @@ export type Task = {
   dueDate: string | null;
   createdById: number;
   assigneeUserId: number | null;
+  projectId: number;
 };
 
 export type CreateTaskValues = z.infer<typeof createTaskSchema>;

@@ -5,6 +5,12 @@ export type CurrentUser = {
   displayName: string;
 };
 
+export type UserDirectoryItem = {
+  id: number;
+  email: string;
+  displayName: string;
+};
+
 export type ProfilePageProps = {
   user: CurrentUser;
 };

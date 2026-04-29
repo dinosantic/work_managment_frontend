@@ -1,5 +1,5 @@
 import api from "@/api/axios";
-import type { CurrentUser } from "@/features/user/types";
+import type { CurrentUser, UserDirectoryItem } from "@/features/user/types";
 
 export async function getCurrentUser() {
   const response = await api.get<{ user: CurrentUser }>("/users/me");
@@ -13,4 +13,10 @@ export async function editCurrentUser(displayName?: string) {
   });
 
   return response.data.user;
+}
+
+export async function getUsersDirectory() {
+  const response = await api.get<{ users: UserDirectoryItem[] }>("/users/directory");
+
+  return response.data.users;
 }

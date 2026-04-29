@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useProjectsQuery } from "@/features/projects/hooks";
 import { useTasks } from "@/features/tasks/hooks";
 import {
   getTaskDueDateMeta,
@@ -37,9 +38,11 @@ import { createTaskSchema } from "@/features/tasks/schemas";
 export default function TasksPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { tasksQuery, createTaskMutation } = useTasks();
+  const projectsQuery = useProjectsQuery();
   const form = useForm<CreateTaskValues>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
+      projectId: 0,
       title: "",
       description: "",
       priority: "MEDIUM",
@@ -47,6 +50,16 @@ export default function TasksPage() {
       assigneeUserId: null,
     },
   });
+
+  useEffect(() => {
+    const firstProjectId = projectsQuery.data?.[0]?.id;
+
+    if (!firstProjectId || form.getValues("projectId") > 0) {
+      return;
+    }
+
+    form.setValue("projectId", firstProjectId);
+  }, [form, projectsQuery.data]);
 
   async function handleAddTask(values: CreateTaskValues) {
     await createTaskMutation.mutateAsync(values);
@@ -60,8 +73,11 @@ export default function TasksPage() {
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-xl">
             <ListTodo className="size-5 text-amber-500" />
-            Tasks
+            My Tasks
           </CardTitle>
+          <p className="text-sm text-slate-500">
+            Personal task view for work you created or tasks assigned to you.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Dialog
@@ -90,6 +106,51 @@ export default function TasksPage() {
                 onSubmit={form.handleSubmit(handleAddTask)}
                 className="space-y-4"
               >
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Project
+                  </label>
+                  <Select
+                    value={
+                      form.watch("projectId") > 0
+                        ? String(form.watch("projectId"))
+                        : undefined
+                    }
+                    onValueChange={(value) =>
+                      form.setValue("projectId", Number(value), {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    disabled={projectsQuery.isLoading || !projectsQuery.data?.length}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectGroup>
+                        {projectsQuery.data?.map((project) => (
+                          <SelectItem
+                            key={project.id}
+                            value={String(project.id)}
+                          >
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.projectId && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.projectId.message}
+                    </p>
+                  )}
+                  {!projectsQuery.isLoading && !projectsQuery.data?.length && (
+                    <p className="text-sm text-slate-500">
+                      Create a project before adding tasks.
+                    </p>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="task-title"
@@ -182,7 +243,12 @@ export default function TasksPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={createTaskMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={
+                      createTaskMutation.isPending || !projectsQuery.data?.length
+                    }
+                  >
                     <Plus className="size-4" />
                     Create task
                   </Button>

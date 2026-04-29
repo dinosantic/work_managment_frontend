@@ -74,8 +74,10 @@ export function getTaskDueDateMeta(dueDate: string | null): {
 }
 
 export const sectionTitles = [
+  { match: /^\/projects\/[^/]+$/, title: "Project Details" },
+  { match: /^\/projects$/, title: "Projects" },
   { match: /^\/tasks\/[^/]+$/, title: "Task Details" },
-  { match: /^\/tasks$/, title: "Tasks" },
+  { match: /^\/tasks$/, title: "My Tasks" },
   { match: /^\/profile$/, title: "Profile" },
   { match: /^\/$/, title: "Overview" },
 ];

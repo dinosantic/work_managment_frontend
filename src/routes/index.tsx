@@ -7,6 +7,8 @@ const Layout = lazy(() => import("@/components/layout"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const ProjectDetailsPage = lazy(() => import("@/pages/ProjectDetailsPage"));
+const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
 const RegisterPage = lazy(() => import("@/pages/RegisterPage"));
 const TaskDetailsPage = lazy(() => import("@/pages/TaskDetailsPage"));
 const TasksPage = lazy(() => import("@/pages/TasksPage"));
@@ -39,6 +41,14 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: withSuspense(<HomePage />),
+          },
+          {
+            path: "projects",
+            element: withSuspense(<ProjectsPage />),
+          },
+          {
+            path: "projects/:projectId",
+            element: withSuspense(<ProjectDetailsPage />),
           },
           {
             path: "tasks",

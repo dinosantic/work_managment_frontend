@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const createTaskSchema = z.object({
+const taskDetailsSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
   description: z.string().trim().min(1, "Description is required"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
@@ -8,6 +8,10 @@ export const createTaskSchema = z.object({
   assigneeUserId: z.number().int().positive().nullable(),
 });
 
-export const updateTaskSchema = createTaskSchema.extend({
+export const createTaskSchema = z.object({
+  projectId: z.number().int().positive("Project is required"),
+}).extend(taskDetailsSchema.shape);
+
+export const updateTaskSchema = taskDetailsSchema.extend({
   status: z.enum(["OPEN", "IN_PROGRESS", "DONE"]),
 });

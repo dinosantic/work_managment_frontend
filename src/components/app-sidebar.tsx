@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronRight,
+  FolderKanban,
   LayoutDashboard,
   LogOut,
   SquareTerminal,
@@ -27,7 +28,8 @@ const navItems: Array<{
   icon: typeof LayoutDashboard;
 }> = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/tasks", label: "Tasks", icon: SquareTerminal },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/tasks", label: "My Tasks", icon: SquareTerminal },
 ];
 
 function UserMenu({
