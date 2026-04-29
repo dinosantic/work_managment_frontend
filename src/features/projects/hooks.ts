@@ -6,6 +6,7 @@ import {
   deleteProject,
   getProject,
   getProjects,
+  removeProjectMember,
 } from "@/features/projects/api";
 import type {
   AddProjectMemberValues,
@@ -120,10 +121,40 @@ export function useProjects() {
     },
   });
 
+  const removeProjectMemberMutation = useMutation({
+    mutationFn: async ({
+      projectId,
+      userId,
+    }: {
+      projectId: number;
+      userId: number;
+    }) => {
+      await removeProjectMember(projectId, userId);
+
+      return { projectId, userId };
+    },
+    onSuccess: async ({ projectId }) => {
+      toast.success("Success", {
+        description: "Project member removed successfully",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: [...PROJECTS_QUERY_KEY, projectId],
+      });
+    },
+    onError: (err: unknown) => {
+      console.error("Project member remove error", err);
+      toast.error("Error", {
+        description:
+          err instanceof Error ? err.message : "Failed to remove project member.",
+      });
+    },
+  });
+
   return {
     projectsQuery,
     createProjectMutation,
     addProjectMemberMutation,
     deleteProjectMutation,
+    removeProjectMemberMutation,
   };
 }

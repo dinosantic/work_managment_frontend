@@ -52,7 +52,11 @@ export default function ProjectDetailsPage() {
   const navigate = useNavigate();
   const parsedProjectId = Number(projectId);
   const projectDetailsQuery = useProjectDetails(parsedProjectId);
-  const { addProjectMemberMutation, deleteProjectMutation } = useProjects();
+  const {
+    addProjectMemberMutation,
+    deleteProjectMutation,
+    removeProjectMemberMutation,
+  } = useProjects();
   const { tasksQuery, createTaskMutation } = useTasks();
   const { currentUserQuery } = useCurrentUser();
   const usersDirectoryQuery = useUsersDirectoryQuery();
@@ -125,11 +129,15 @@ export default function ProjectDetailsPage() {
   const currentMember = currentUser
     ? members.find((member) => member.userId === currentUser.id)
     : undefined;
-  const canDeleteProject =
+  const canManageMembers =
     currentUser?.role === "ADMIN" || currentMember?.role === "MANAGER";
+  const canDeleteProject =
+    canManageMembers;
   const availableUsers =
     usersDirectoryQuery.data?.filter(
-      (user) => !members.some((member) => member.userId === user.id),
+      (user) =>
+        user.role !== "ADMIN" &&
+        !members.some((member) => member.userId === user.id),
     ) ?? [];
   const projectTasks =
     tasksQuery.data?.filter((task) => task.projectId === project.id) ?? [];
@@ -174,6 +182,22 @@ export default function ProjectDetailsPage() {
     navigate("/projects");
   }
 
+  async function handleRemoveMember(userId: number, displayName: string) {
+    const shouldRemove = window.confirm(
+      `Remove ${displayName} from "${project.name}"?`,
+    );
+
+    if (!shouldRemove) {
+      return;
+    }
+
+    await removeProjectMemberMutation.mutateAsync({
+      projectId: project.id,
+      userId,
+    });
+    projectDetailsQuery.refetch();
+  }
+
   return (
     <div className="space-y-4">
       <Card className="border-slate-200 bg-white">
@@ -211,114 +235,116 @@ export default function ProjectDetailsPage() {
                 Delete project
               </Button>
             )}
-            <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-              <DialogTrigger asChild>
-                <Button type="button" variant="outline">
-                  <Users className="size-4" />
-                  Add member
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add project member</DialogTitle>
-                  <DialogDescription>
-                    Select a user from the directory, then assign a project role.
-                  </DialogDescription>
-                </DialogHeader>
-                <form
-                  onSubmit={addMemberForm.handleSubmit(handleAddMember)}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">
-                      User
-                    </label>
-                    <Select
-                      value={
-                        addMemberForm.watch("userId") > 0
-                          ? String(addMemberForm.watch("userId"))
-                          : undefined
-                      }
-                      onValueChange={(value) =>
-                        addMemberForm.setValue("userId", Number(value), {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                      }
-                      disabled={
-                        usersDirectoryQuery.isLoading || !availableUsers.length
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select user" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectGroup>
-                          {availableUsers.map((user) => (
-                            <SelectItem key={user.id} value={String(user.id)}>
-                              {user.displayName} ({user.email})
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    {addMemberForm.formState.errors.userId && (
-                      <p className="text-sm text-red-600">
-                        {addMemberForm.formState.errors.userId.message}
-                      </p>
-                    )}
-                    {!usersDirectoryQuery.isLoading && !availableUsers.length && (
-                      <p className="text-sm text-slate-500">
-                        No available users to add.
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">
-                      Role
-                    </label>
-                    <Select
-                      value={addMemberForm.watch("role")}
-                      onValueChange={(value) =>
-                        addMemberForm.setValue(
-                          "role",
-                          value as AddProjectMemberValues["role"],
-                          {
+            {canManageMembers && (
+              <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline">
+                    <Users className="size-4" />
+                    Add member
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add project member</DialogTitle>
+                    <DialogDescription>
+                      Select a user from the directory, then assign a project role.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={addMemberForm.handleSubmit(handleAddMember)}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">
+                        User
+                      </label>
+                      <Select
+                        value={
+                          addMemberForm.watch("userId") > 0
+                            ? String(addMemberForm.watch("userId"))
+                            : undefined
+                        }
+                        onValueChange={(value) =>
+                          addMemberForm.setValue("userId", Number(value), {
                             shouldDirty: true,
                             shouldValidate: true,
-                          },
-                        )
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectGroup>
-                          <SelectItem value="MEMBER">Member</SelectItem>
-                          <SelectItem value="MANAGER">Manager</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsAddMemberOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={addProjectMemberMutation.isPending}
-                    >
-                      Add member
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                          })
+                        }
+                        disabled={
+                          usersDirectoryQuery.isLoading || !availableUsers.length
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectGroup>
+                            {availableUsers.map((user) => (
+                              <SelectItem key={user.id} value={String(user.id)}>
+                                {user.displayName} ({user.email})
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      {addMemberForm.formState.errors.userId && (
+                        <p className="text-sm text-red-600">
+                          {addMemberForm.formState.errors.userId.message}
+                        </p>
+                      )}
+                      {!usersDirectoryQuery.isLoading && !availableUsers.length && (
+                        <p className="text-sm text-slate-500">
+                          No available users to add.
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">
+                        Role
+                      </label>
+                      <Select
+                        value={addMemberForm.watch("role")}
+                        onValueChange={(value) =>
+                          addMemberForm.setValue(
+                            "role",
+                            value as AddProjectMemberValues["role"],
+                            {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            },
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectGroup>
+                            <SelectItem value="MEMBER">Member</SelectItem>
+                            <SelectItem value="MANAGER">Manager</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsAddMemberOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={addProjectMemberMutation.isPending}
+                      >
+                        Add member
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
 
             <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
               <DialogTrigger asChild>
@@ -496,11 +522,30 @@ export default function ProjectDetailsPage() {
                       {member.user.email} • Added {new Date(member.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <Badge
-                    variant={member.role === "MANAGER" ? "warning" : "outline"}
-                  >
-                    {member.role}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={member.role === "MANAGER" ? "warning" : "outline"}
+                    >
+                      {member.role}
+                    </Badge>
+                    {canManageMembers && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() =>
+                          handleRemoveMember(
+                            member.userId,
+                            member.user.displayName,
+                          )
+                        }
+                        disabled={removeProjectMemberMutation.isPending}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

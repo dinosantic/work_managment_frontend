@@ -9,6 +9,7 @@ export type UserDirectoryItem = {
   id: number;
   email: string;
   displayName: string;
+  role: string;
 };
 
 export type ProfilePageProps = {

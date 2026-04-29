@@ -33,6 +33,10 @@ export async function addProjectMember(
   return response.data;
 }
 
+export async function removeProjectMember(projectId: number, userId: number) {
+  await api.delete(`/projects/${projectId}/members/${userId}`);
+}
+
 export async function deleteProject(projectId: number) {
   await api.delete(`/projects/${projectId}`);
 }
