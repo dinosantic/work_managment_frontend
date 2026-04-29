@@ -3,6 +3,7 @@ import { toast } from "@/components/ui/toast";
 import {
   addProjectMember,
   createProject,
+  deleteProject,
   getProject,
   getProjects,
 } from "@/features/projects/api";
@@ -93,9 +94,36 @@ export function useProjects() {
     },
   });
 
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      await deleteProject(projectId);
+
+      return projectId;
+    },
+    onSuccess: async (projectId) => {
+      toast.success("Success", {
+        description: "Project deleted successfully",
+      });
+      queryClient.setQueryData<Project[]>(PROJECTS_QUERY_KEY, (current = []) =>
+        current.filter((project) => project.id !== projectId),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: PROJECTS_QUERY_KEY,
+      });
+    },
+    onError: (err: unknown) => {
+      console.error("Project delete error", err);
+      toast.error("Error", {
+        description:
+          err instanceof Error ? err.message : "Failed to delete project.",
+      });
+    },
+  });
+
   return {
     projectsQuery,
     createProjectMutation,
     addProjectMemberMutation,
+    deleteProjectMutation,
   };
 }

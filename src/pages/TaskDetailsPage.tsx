@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, ListTodo } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, CheckCircle2, ListTodo, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,18 +17,30 @@ import {
 import EditableDetailRow from "@/components/editable-detail-row";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useTaskQuery, useUpdateTaskMutation } from "@/features/tasks/hooks";
+import { useProjectDetails } from "@/features/projects/hooks";
+import {
+  useDeleteTaskMutation,
+  useTaskQuery,
+  useUpdateTaskMutation,
+} from "@/features/tasks/hooks";
 import { ApiError } from "@/lib/api";
 import { updateTaskSchema } from "@/features/tasks/schemas";
 import type { TaskStatus, UpdateTaskValues } from "@/features/tasks/types";
 import { getTaskPriorityMeta, getTaskStatusMeta } from "@/lib/utils";
+import { useCurrentUser } from "@/features/user/hooks";
 
 export default function TaskDetailsPage() {
   const { taskId } = useParams();
+  const navigate = useNavigate();
   const parsedTaskId = Number(taskId);
 
   const taskQuery = useTaskQuery(parsedTaskId);
+  const projectDetailsQuery = useProjectDetails(
+    taskQuery.data?.projectId ?? -1,
+  );
   const updateTaskMutation = useUpdateTaskMutation();
+  const deleteTaskMutation = useDeleteTaskMutation();
+  const { currentUserQuery } = useCurrentUser();
   const [isEditing, setIsEditing] = useState(false);
   const form = useForm<UpdateTaskValues>({
     resolver: zodResolver(updateTaskSchema),
@@ -100,6 +112,10 @@ export default function TaskDetailsPage() {
   }
 
   const task = taskQuery.data;
+
+  const currentUser = currentUserQuery.data;
+  const canDeleteTask =
+    currentUser?.role === "ADMIN" || currentUser?.id === task.createdById;
   const priorityMeta = getTaskPriorityMeta(task.priority);
 
   const handleEdit = () => {
@@ -179,6 +195,19 @@ export default function TaskDetailsPage() {
     }
   };
 
+  const handleDelete = async () => {
+    const shouldDelete = window.confirm(
+      `Delete task "${task.title}"? This action cannot be undone.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    await deleteTaskMutation.mutateAsync(task.id);
+    navigate("/tasks");
+  };
+
   return (
     <Card className="border-slate-200 bg-white">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -202,6 +231,17 @@ export default function TaskDetailsPage() {
             {task.title}
           </CardTitle>
         </div>
+        {canDeleteTask && (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={deleteTaskMutation.isPending}
+          >
+            <Trash2 className="size-4" />
+            Delete task
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">
         <EditableDetailRow
@@ -215,7 +255,11 @@ export default function TaskDetailsPage() {
                 autoFocus
                 disabled={updateTaskMutation.isPending}
                 aria-invalid={errors.title ? "true" : "false"}
-                className={errors.title ? "border-red-500 focus-visible:ring-red-400" : undefined}
+                className={
+                  errors.title
+                    ? "border-red-500 focus-visible:ring-red-400"
+                    : undefined
+                }
                 {...form.register("title")}
               />
               {errors.title && (
@@ -272,10 +316,14 @@ export default function TaskDetailsPage() {
             <div className="space-y-2">
               <Select
                 onValueChange={(value) =>
-                  form.setValue("priority", value as UpdateTaskValues["priority"], {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
+                  form.setValue(
+                    "priority",
+                    value as UpdateTaskValues["priority"],
+                    {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    },
+                  )
                 }
                 value={form.watch("priority")}
                 disabled={updateTaskMutation.isPending}
@@ -299,7 +347,9 @@ export default function TaskDetailsPage() {
                 </SelectContent>
               </Select>
               {errors.priority && (
-                <p className="text-sm text-red-600">{errors.priority.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.priority.message}
+                </p>
               )}
             </div>
           }
@@ -331,7 +381,6 @@ export default function TaskDetailsPage() {
           label="Description"
           value={task.description}
           isEditable={isEditing}
-          className="md:col-span-2"
           valueClassName="font-normal"
           editor={
             <div className="space-y-2">
@@ -352,6 +401,24 @@ export default function TaskDetailsPage() {
               )}
             </div>
           }
+        />
+        <EditableDetailRow
+          label="Project"
+          value={
+            projectDetailsQuery.isLoading ? (
+              "Loading project..."
+            ) : (
+              <Link
+                to={`/projects/${task.projectId}`}
+                className="text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-700 hover:decoration-slate-500"
+              >
+                {projectDetailsQuery.data?.project.name ??
+                  `Project #${task.projectId}`}
+              </Link>
+            )
+          }
+          isEditable={false}
+          editor={null}
         />
       </CardContent>
       <div className="flex items-center justify-end gap-4 px-6 pb-4 text-sm text-slate-500">

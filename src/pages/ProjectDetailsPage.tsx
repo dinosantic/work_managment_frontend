@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   FolderKanban,
   Plus,
   ShieldCheck,
+  Trash2,
   Users,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -44,14 +45,16 @@ import { useProjectDetails, useProjects } from "@/features/projects/hooks";
 import { useTasks } from "@/features/tasks/hooks";
 import type { CreateTaskValues } from "@/features/tasks/types";
 import { createTaskSchema } from "@/features/tasks/schemas";
-import { useUsersDirectoryQuery } from "@/features/user/hooks";
+import { useCurrentUser, useUsersDirectoryQuery } from "@/features/user/hooks";
 
 export default function ProjectDetailsPage() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const parsedProjectId = Number(projectId);
   const projectDetailsQuery = useProjectDetails(parsedProjectId);
-  const { addProjectMemberMutation } = useProjects();
+  const { addProjectMemberMutation, deleteProjectMutation } = useProjects();
   const { tasksQuery, createTaskMutation } = useTasks();
+  const { currentUserQuery } = useCurrentUser();
   const usersDirectoryQuery = useUsersDirectoryQuery();
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -118,6 +121,12 @@ export default function ProjectDetailsPage() {
   }
 
   const { project, members } = projectDetailsQuery.data;
+  const currentUser = currentUserQuery.data;
+  const currentMember = currentUser
+    ? members.find((member) => member.userId === currentUser.id)
+    : undefined;
+  const canDeleteProject =
+    currentUser?.role === "ADMIN" || currentMember?.role === "MANAGER";
   const availableUsers =
     usersDirectoryQuery.data?.filter(
       (user) => !members.some((member) => member.userId === user.id),
@@ -152,6 +161,19 @@ export default function ProjectDetailsPage() {
     tasksQuery.refetch();
   }
 
+  async function handleDeleteProject() {
+    const shouldDelete = window.confirm(
+      `Delete project "${project.name}"? This will also remove its tasks and memberships.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    await deleteProjectMutation.mutateAsync(project.id);
+    navigate("/projects");
+  }
+
   return (
     <div className="space-y-4">
       <Card className="border-slate-200 bg-white">
@@ -178,6 +200,17 @@ export default function ProjectDetailsPage() {
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
+            {canDeleteProject && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteProject}
+                disabled={deleteProjectMutation.isPending}
+              >
+                <Trash2 className="size-4" />
+                Delete project
+              </Button>
+            )}
             <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
               <DialogTrigger asChild>
                 <Button type="button" variant="outline">

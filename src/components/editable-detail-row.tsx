@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 type EditableDetailRowProps = {
   label: string;
-  value: string | number;
+  value: ReactNode;
   isEditable?: boolean;
   editor?: ReactNode;
   className?: string;

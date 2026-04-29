@@ -79,6 +79,41 @@ export function useUpdateTaskMutation() {
   });
 }
 
+export function useDeleteTaskMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: number) => {
+      await deleteTask(taskId);
+
+      return taskId;
+    },
+    onSuccess: (taskId) => {
+      toast.success("Success", {
+        description: "Task deleted successfully",
+      });
+      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
+        current.filter((task) => task.id !== taskId),
+      );
+      queryClient.removeQueries({
+        queryKey: [...TASKS_QUERY_KEY, taskId],
+      });
+    },
+    onError: (err: unknown) => {
+      console.error("Task delete error", err);
+      if (err instanceof Error) {
+        toast.error("Error", {
+          description: err.message,
+        });
+      } else {
+        toast.error("Error", {
+          description: "An unknown error occurred. Please try again.",
+        });
+      }
+    },
+  });
+}
+
 export function useTasks() {
   const queryClient = useQueryClient();
   const tasksQuery = useTasksQuery();

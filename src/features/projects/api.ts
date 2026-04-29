@@ -32,3 +32,7 @@ export async function addProjectMember(
 
   return response.data;
 }
+
+export async function deleteProject(projectId: number) {
+  await api.delete(`/projects/${projectId}`);
+}
