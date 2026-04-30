@@ -18,21 +18,27 @@ export interface ToastOptions {
 const map = {
   success: {
     icon: null,
-    bg: "bg-white",
-    text: "text-[#84CC16]",
+    bg: "bg-slate-500",
+    titleText: "text-[#84CC16]",
+    descriptionText: "text-white",
     border: "border-[#84CC16]",
+    iconText: "text-[#84CC16]",
   },
   warning: {
     icon: null,
-    bg: "bg-white",
-    text: "text-text-brand-default",
+    bg: "bg-slate-500",
+    titleText: "text-amber-700",
+    descriptionText: "text-white",
     border: "border-border-brand-default",
+    iconText: "text-amber-700",
   },
   error: {
     icon: null,
-    bg: "bg-white",
-    text: "text-text-destructive-default",
-    border: "border-border-destructive-default",
+    bg: "bg-slate-500",
+    titleText: "text-red-600",
+    descriptionText: "text-white",
+    border: "border-red-500",
+    iconText: "text-red-600",
   },
 } as const;
 interface ToastCardProps extends ToastOptions {
@@ -47,24 +53,24 @@ function ToastCard(props: Readonly<ToastCardProps>) {
 
   return (
     <div
-      className={`flex min-w-[350px] items-center gap-3 relative rounded-md p-4 shadow-lg ring-1 ring-black/5 border-1 ${v.border} bg-slate-700`}
+      className={`relative flex min-w-[350px] items-center gap-3 rounded-md border p-4 shadow-lg ring-1 ring-black/5 ${v.border} ${v.bg}`}
     >
       {icon === null ? null : (icon ?? v.icon)}
       <div className="flex-1">
-        <p className={`text-sm font-medium ${v.text}`}>{title}</p>
+        <p className={`text-sm font-medium ${v.titleText}`}>{title}</p>
         {description && (
-          <p className={`mt-1 text-sm text-white`}>{description}</p>
+          <p className={`mt-1 text-sm ${v.descriptionText}`}>{description}</p>
         )}
       </div>
       {action && (
-        <div className="flex h-full justify-center items-center mr-4">
+        <div className="mr-4 flex h-full items-center justify-center">
           <Button
             variant="outline"
             onClick={() => {
               action.onClick();
               sonnerToast.dismiss(id);
             }}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md ${v.text} hover:opacity-80 transition-opacity`}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-80 ${v.titleText}`}
           >
             {action.label}
           </Button>
@@ -72,7 +78,7 @@ function ToastCard(props: Readonly<ToastCardProps>) {
             onClick={() => sonnerToast.dismiss(id)}
             className="absolute right-2 top-2 ml-3 opacity-70 hover:opacity-100 focus:outline-none cursor-pointer"
           >
-            <X className={`h-4 w-4`} />
+            <X className={`h-4 w-4 ${v.iconText}`} />
           </button>
         </div>
       )}
