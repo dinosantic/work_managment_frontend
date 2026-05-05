@@ -57,7 +57,10 @@ export default function ProjectDetailsPage() {
     deleteProjectMutation,
     removeProjectMemberMutation,
   } = useProjects();
-  const { tasksQuery, createTaskMutation } = useTasks();
+  const { tasksQuery, createTaskMutation } = useTasks({
+    projectId: parsedProjectId,
+    scope: "project",
+  });
   const { currentUserQuery } = useCurrentUser();
   const usersDirectoryQuery = useUsersDirectoryQuery();
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
@@ -139,8 +142,7 @@ export default function ProjectDetailsPage() {
         user.role !== "ADMIN" &&
         !members.some((member) => member.userId === user.id),
     ) ?? [];
-  const projectTasks =
-    tasksQuery.data?.filter((task) => task.projectId === project.id) ?? [];
+  const projectTasks = tasksQuery.data ?? [];
 
   async function handleAddMember(values: AddProjectMemberValues) {
     await addProjectMemberMutation.mutateAsync({

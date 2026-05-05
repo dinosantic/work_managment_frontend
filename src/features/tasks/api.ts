@@ -1,12 +1,15 @@
 import api from "@/api/axios";
 import type {
   CreateTaskValues,
+  GetTasksParams,
   Task,
   UpdateTaskValues,
 } from "@/features/tasks/types";
 
-export async function getTasks() {
-  const response = await api.get<Task[]>("/tasks");
+export async function getTasks(params?: GetTasksParams) {
+  const response = await api.get<Task[]>("/tasks", {
+    params,
+  });
 
   return response.data;
 }

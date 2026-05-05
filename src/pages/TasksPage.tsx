@@ -32,12 +32,15 @@ import {
   getTaskPriorityMeta,
   getTaskStatusMeta,
 } from "@/lib/utils";
-import type { CreateTaskValues } from "@/features/tasks/types";
+import type { CreateTaskValues, TaskListScope } from "@/features/tasks/types";
 import { createTaskSchema } from "@/features/tasks/schemas";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ApiError } from "@/lib/api";
 
 export default function TasksPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { tasksQuery, createTaskMutation } = useTasks();
+  const [scope, setScope] = useState<TaskListScope>("assigned");
+  const { tasksQuery, createTaskMutation } = useTasks({ scope });
   const projectsQuery = useProjectsQuery();
   const form = useForm<CreateTaskValues>({
     resolver: zodResolver(createTaskSchema),
@@ -76,10 +79,24 @@ export default function TasksPage() {
             My Tasks
           </CardTitle>
           <p className="text-sm text-slate-500">
-            Personal task view for work you created or tasks assigned to you.
+            Personal task view for tasks assigned to you or tasks you created.
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Select
+            value={scope}
+            onValueChange={(value) => setScope(value as TaskListScope)}
+          >
+            <SelectTrigger className="w-[190px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectGroup>
+                <SelectItem value="assigned">Assigned to me</SelectItem>
+                <SelectItem value="created">Created by me</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={(nextOpen) => {
@@ -259,6 +276,16 @@ export default function TasksPage() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {tasksQuery.isError && (
+          <Alert className="border-red-200 bg-red-50 text-red-900">
+            <AlertTitle>Could not load tasks</AlertTitle>
+            <AlertDescription>
+              {tasksQuery.error instanceof ApiError
+                ? tasksQuery.error.message
+                : "Unexpected error"}
+            </AlertDescription>
+          </Alert>
+        )}
         {tasksQuery.isLoading && (
           <p className="text-sm text-slate-500">Loading tasks...</p>
         )}

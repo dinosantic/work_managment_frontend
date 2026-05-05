@@ -7,6 +7,7 @@ import {
 } from "@/features/tasks/api";
 import type {
   CreateTaskValues,
+  GetTasksParams,
   Task,
   UpdateTaskValues,
 } from "@/features/tasks/types";
@@ -15,11 +16,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const TASKS_QUERY_KEY = ["tasks"];
 
-export function useTasksQuery() {
+export function useTasksQuery(filters?: GetTasksParams) {
   return useQuery({
-    queryKey: TASKS_QUERY_KEY,
+    queryKey: [...TASKS_QUERY_KEY, filters ?? {}],
     queryFn: async () => {
-      const response = await getTasks();
+      const response = await getTasks(filters);
 
       return response;
     },
@@ -58,11 +59,9 @@ export function useUpdateTaskMutation() {
         description: "Task updated successfully",
       });
       queryClient.setQueryData<Task>([...TASKS_QUERY_KEY, task.id], task);
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
-        current.map((currentTask) =>
-          currentTask.id === task.id ? task : currentTask,
-        ),
-      );
+      queryClient.invalidateQueries({
+        queryKey: TASKS_QUERY_KEY,
+      });
     },
     onError: (err: unknown) => {
       console.error("Task update error", err);
@@ -92,11 +91,11 @@ export function useDeleteTaskMutation() {
       toast.success("Success", {
         description: "Task deleted successfully",
       });
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
-        current.filter((task) => task.id !== taskId),
-      );
       queryClient.removeQueries({
         queryKey: [...TASKS_QUERY_KEY, taskId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: TASKS_QUERY_KEY,
       });
     },
     onError: (err: unknown) => {
@@ -114,9 +113,9 @@ export function useDeleteTaskMutation() {
   });
 }
 
-export function useTasks() {
+export function useTasks(filters?: GetTasksParams) {
   const queryClient = useQueryClient();
-  const tasksQuery = useTasksQuery();
+  const tasksQuery = useTasksQuery(filters);
 
   const createTaskMutation = useMutation({
     mutationFn: async (payload: CreateTaskValues) => {
@@ -128,10 +127,10 @@ export function useTasks() {
       toast.success("Success", {
         description: "Task created successfully",
       });
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) => [
-        ...current,
-        task,
-      ]);
+      queryClient.setQueryData<Task>([...TASKS_QUERY_KEY, task.id], task);
+      queryClient.invalidateQueries({
+        queryKey: TASKS_QUERY_KEY,
+      });
     },
     onError: (err: unknown) => {
       console.error("Task create error", err);
@@ -157,9 +156,12 @@ export function useTasks() {
       toast.success("Success", {
         description: "Task deleted successfully",
       });
-      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (current = []) =>
-        current.filter((task) => task.id !== taskId),
-      );
+      queryClient.removeQueries({
+        queryKey: [...TASKS_QUERY_KEY, taskId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: TASKS_QUERY_KEY,
+      });
     },
     onError: (err: unknown) => {
       console.error("Task delete error", err);
